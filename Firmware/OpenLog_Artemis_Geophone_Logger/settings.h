@@ -6,6 +6,7 @@ typedef enum
   DEVICE_MULTIPLEXER = 0,
   DEVICE_GPS_UBLOX,
   DEVICE_ADC_ADS122C04,
+  DEVICE_ADS1015,
 
   DEVICE_TOTAL_DEVICES, //Marks the end, used to iterate loops
   DEVICE_UNKNOWN_DEVICE,
@@ -68,6 +69,24 @@ struct struct_ADS122C04 {
   bool useFourWireHighTemperatureMode = false;
   bool useThreeWireHighTemperatureMode = false;
   bool useTwoWireHighTemperatureMode = false;
+};
+
+struct struct_ADS1015 {
+  bool log = true;
+  bool logA0 = true;
+  bool logA1 = true;
+  bool logA2 = true;
+  bool logA3 = true;
+  bool logA0A1 = false;
+  bool logA0A3 = false;
+  bool logA1A3 = false;
+  bool logA2A3 = false;
+  bool gain23 = false;
+  bool gain1 = true;
+  bool gain2 = false;
+  bool gain4 = false;
+  bool gain8 = false;
+  bool gain16 = false;
 };
 
 //This is all the settings that can be set on OpenLog. It's recorded to NVM and the config file.

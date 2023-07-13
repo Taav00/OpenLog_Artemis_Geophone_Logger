@@ -5,7 +5,7 @@
 // The FFT analysis code is taken from Ambiq's pdm_fft example:
 // https://github.com/sparkfun/Arduino_Apollo3/blob/master/libraries/PDM/examples/Example1_MicrophoneOutput/Example1_MicrophoneOutput.ino
 
-#define ARM_MATH_CM4
+//#define ARM_MATH_CM4
 #include <arm_math.h>
 
 #define GEOPHONE_FFT_SIZE   1024 // 1024 samples at 512Hz

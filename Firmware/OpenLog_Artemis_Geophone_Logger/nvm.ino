@@ -50,8 +50,6 @@ void recordSystemSettings() {
 
 //Export the current settings to a config file
 void recordSystemSettingsToFile() {
-  Serial.print("record data : before ");
-  Serial.println(online.microSD);
 
   if (online.microSD == true) {
     if (sd.exists("OLA_Geophone_settings.txt"))

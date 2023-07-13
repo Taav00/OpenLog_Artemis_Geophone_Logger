@@ -229,6 +229,17 @@ void setup() {
   
   delay(1); // Let PIN_POWER_LOSS stabilize
   
+
+/* #ifndef noPowerLossProtection
+    if (digitalRead(PIN_POWER_LOSS) == LOW) powerDown(); //Check PIN_POWER_LOSS just in case we missed the falling edge
+    attachInterrupt(digitalPinToInterrupt(PIN_POWER_LOSS), powerDown, FALLING); //Attach the interrupt
+#else */
+    // No Power Loss Protection
+    // Set up the WDT to generate a reset just in case the code crashes during a brown-out
+    startWatchdog();
+/* #endif
+ */  powerLossSeen = false; // Make sure the flag is clear
+
   powerLEDOn(); // Turn the power LED on - if the hardware supports it
 
   pinMode(PIN_STAT_LED, OUTPUT);
@@ -236,21 +247,8 @@ void setup() {
 
   SPI.begin(); //Needed if SD is disabled
 
-/* #ifndef noPowerLossProtection
-  if (digitalRead(PIN_POWER_LOSS) == LOW) powerDown(); //Check PIN_POWER_LOSS just in case we missed the falling edge
-  attachInterrupt(digitalPinToInterrupt(PIN_POWER_LOSS), powerDown, FALLING); //Attach the interrupt
-#else
-  // No Power Loss Protection
-  // Set up the WDT to generate a reset just in case the code crashes during a brown-out
-  startWatchdog();
-#endif
-  powerLossSeen = false; // Make sure the flag is clear */
-  
-
-
   Serial.begin(115200); //Default for initial debug messages if necessary
   if (settings.serialPlotterMode == false) Serial.println();
-
 
   EEPROM.init();
 

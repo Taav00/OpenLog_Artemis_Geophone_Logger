@@ -134,6 +134,11 @@ bool addDevice(deviceType_e deviceType, uint8_t address, uint8_t muxAddress, uin
         temp->classPtr = new SFE_ADS122C04;
         temp->configPtr = new struct_ADS122C04;
       }
+    case DEVICE_ADS1015:
+      {
+        temp->classPtr = new ADS1015;
+        temp->configPtr = new struct_ADS1015 ;
+      }
       break;
     default:
       if (settings.serialPlotterMode == false) Serial.printf("addDevice Device type not found: %d\n", deviceType);
@@ -197,6 +202,14 @@ bool beginQwiicDevices()
         {
           SFE_ADS122C04 *tempDevice = (SFE_ADS122C04 *)temp->classPtr;
           if (tempDevice->begin(temp->address, qwiic) == true) //Address, Wire port. Returns true on success.
+            temp->online = true;
+        }
+        break;
+      case DEVICE_ADS1015:
+        {
+          ADS1015 *tempDevice = (ADS1015 *)temp->classPtr;
+          struct_ADS1015 *nodeSetting = (struct_ADS1015 *)temp->configPtr; //Create a local pointer that points to same spot as node does
+          if (tempDevice->begin(temp->address, qwiic)) //address, Wire port
             temp->online = true;
         }
         break;
@@ -309,6 +322,23 @@ void configureDevice(node * temp)
           sensor->configureADCmode(ADS122C04_3WIRE_HI_TEMP);
         else if (sensorSetting->useTwoWireHighTemperatureMode)
           sensor->configureADCmode(ADS122C04_2WIRE_HI_TEMP);
+      }
+      break;
+    case DEVICE_ADS1015:
+      {
+        ADS1015 *sensor = (ADS1015 *)temp->classPtr;
+        struct_ADS1015 *sensorSetting = (struct_ADS1015 *)temp->configPtr;
+
+        if (sensorSetting->gain23) sensor->setGain(ADS1015_CONFIG_PGA_TWOTHIRDS);
+        else if (sensorSetting->gain1) sensor->setGain(ADS1015_CONFIG_PGA_1);
+        else if (sensorSetting->gain2) sensor->setGain(ADS1015_CONFIG_PGA_2);
+        else if (sensorSetting->gain4) sensor->setGain(ADS1015_CONFIG_PGA_4);
+        else if (sensorSetting->gain8) sensor->setGain(ADS1015_CONFIG_PGA_8);
+        else sensor->setGain(ADS1015_CONFIG_PGA_16);
+
+        //sensor->setSampleRate(ADS1015_CONFIG_RATE_490HZ); // Default is 1600Hz
+
+        sensor->useConversionReady(true);
       }
       break;
     default:
@@ -479,7 +509,7 @@ void swap(struct node * a, struct node * b)
 #define ADR_MS8607 0x40 //Humidity portion of the MS8607 sensor
 #define ADR_UBLOX 0x42 //But can be set to any address
 #define ADR_ADS122C04 0x45 //Alternates: 0x44, 0x41 and 0x40
-#define ADR_TMP117 0x48 //Alternates: 0x49, 0x4A, and 0x4B
+#define ADR_ADS1015 0x48 //Alternates: 0x49, 0x4A, and 0x4B
 #define ADR_SGP30 0x58
 #define ADR_CCS811_2 0x5A
 #define ADR_CCS811_1 0x5B
@@ -537,6 +567,16 @@ deviceType_e testDevice(uint8_t i2cAddress, uint8_t muxAddress, uint8_t portNumb
         SFE_ADS122C04 sensor;
         if (sensor.begin(i2cAddress, qwiic) == true) //Address, Wire port
           return (DEVICE_ADC_ADS122C04);
+      }
+      break;
+    case 0x48:
+    case 0x49:
+    case 0x4A:
+    case 0x4B:
+      {
+        ADS1015 sensor;
+        if (sensor.begin(i2cAddress, qwiic) == true) //Address, Wire port
+          return (DEVICE_ADS1015);
       }
       break;
     case 0x70:
@@ -653,7 +693,9 @@ const char* getDeviceName(deviceType_e deviceNumber)
     case DEVICE_ADC_ADS122C04:
       return "ADC-ADS122C04";
       break;
-
+    case DEVICE_ADS1015:
+      return "ADC-ADC1015";
+      break;
     case DEVICE_UNKNOWN_DEVICE:
       return "Unknown device";
       break;

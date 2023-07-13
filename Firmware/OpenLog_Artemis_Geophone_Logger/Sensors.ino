@@ -78,8 +78,17 @@ int16_t gatherADCValue()
             return(ADC_conversion.INT16); // Return the signed version
           }
           break;
+        case DEVICE_ADS1015:
+          {
+            ADS1015 *nodeDevice = (ADS1015 *)temp->classPtr;
+            struct_ADS1015 *nodeSetting = (struct_ADS1015 *)temp->configPtr;
+            
+            int16_t channel_0 = nodeDevice->getSingleEndedSigned(0);
+            return(channel_0); 
+          }
+          break;
         default:
-          //Serial.printf("printDeviceValue unknown device type: %s\n", getDeviceName(temp->deviceType));
+          Serial.printf("gatherADCvalues : printDeviceValue unknown device type: %s\n", getDeviceName(temp->deviceType));
           break;
       }
     }
@@ -88,7 +97,7 @@ int16_t gatherADCValue()
   return(0);
 }
 
-//Configure the ADC for raw measurements at 600Hz
+//Configure the ADC for raw measurements
 void configureADC()
 {
   node *temp = head;
@@ -176,8 +185,15 @@ void configureADC()
             nodeDevice->start(); // Start the first conversion
           }
           break;
+        case DEVICE_ADS1015:
+          {
+            ADS1015 *nodeDevice = (ADS1015 *)temp->classPtr;
+            struct_ADS1015 *nodeSetting = (struct_ADS1015 *)temp->configPtr;
+            nodeDevice->setSampleRate(ADS1015_CONFIG_RATE_1600HZ);
+          }
+          break;
         default:
-          Serial.printf("printDeviceValue unknown device type: %s\n", getDeviceName(temp->deviceType));
+          Serial.printf("configureADC : printDeviceValue unknown device type: %s\n", getDeviceName(temp->deviceType));
           break;
       }
     }
