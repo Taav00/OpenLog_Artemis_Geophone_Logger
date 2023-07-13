@@ -39,8 +39,8 @@
 
 */
 
-const int FIRMWARE_VERSION_MAJOR = 1;
-const int FIRMWARE_VERSION_MINOR = 0;
+const int FIRMWARE_VERSION_MAJOR = 2;
+const int FIRMWARE_VERSION_MINOR = 5;
 
 //Define the OLA board identifier:
 //  This is an int which is unique to this variant of the OLA and which allows us
@@ -50,7 +50,7 @@ const int FIRMWARE_VERSION_MINOR = 0;
 //    the variant * 0x100 (OLA = 1; GNSS_LOGGER = 2; GEOPHONE_LOGGER = 3)
 //    the major firmware version * 0x10
 //    the minor firmware version
-#define OLA_IDENTIFIER 0x310
+#define OLA_IDENTIFIER 0x325
 
 #include "settings.h"
 
@@ -59,16 +59,10 @@ const int FIRMWARE_VERSION_MINOR = 0;
 //x04 was the SparkX 'black' version.
 //v10 was the first red version.
 //05 and 06 are test versions based on x04 hardware. For x06, qwiic power is provide by a second AP2112K.
-#define HARDWARE_VERSION_MAJOR 0
-#define HARDWARE_VERSION_MINOR 4
+#define HARDWARE_VERSION_MAJOR 1
+#define HARDWARE_VERSION_MINOR 0
 
 #if(HARDWARE_VERSION_MAJOR == 0 && HARDWARE_VERSION_MINOR == 4)
-const byte PIN_MICROSD_CHIP_SELECT = 10;
-const byte PIN_IMU_POWER = 22;
-#elif(HARDWARE_VERSION_MAJOR == 0 && HARDWARE_VERSION_MINOR == 5)
-const byte PIN_MICROSD_CHIP_SELECT = 10;
-const byte PIN_IMU_POWER = 22;
-#elif(HARDWARE_VERSION_MAJOR == 0 && HARDWARE_VERSION_MINOR == 6)
 const byte PIN_MICROSD_CHIP_SELECT = 10;
 const byte PIN_IMU_POWER = 22;
 #elif(HARDWARE_VERSION_MAJOR == 1 && HARDWARE_VERSION_MINOR == 0)
@@ -87,6 +81,12 @@ const byte PIN_STAT_LED = 19;
 const byte PIN_IMU_INT = 37;
 const byte PIN_IMU_CHIP_SELECT = 44;
 const byte PIN_STOP_LOGGING = 32;
+const byte PIN_QWIIC_SDA = 9;
+const byte PIN_QWIIC_SCL = 8;
+
+const byte PIN_SPI_SCK = 5;
+const byte PIN_SPI_CIPO = 6;
+const byte PIN_SPI_COPI = 7;
 
 enum returnStatus {
   STATUS_GETBYTE_TIMEOUT = 255,
@@ -97,7 +97,7 @@ enum returnStatus {
 //Setup Qwiic Port
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #include <Wire.h>
-TwoWire qwiic(1); //Will use pads 8/9
+TwoWire qwiic(PIN_QWIIC_SDA, PIN_QWIIC_SCL); //Will use pins: 9 -> SDA, 8 -> SCC
 #define QWIIC_PULLUPS 1 // Default to 1k pull-ups on the Qwiic bus
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -110,8 +110,27 @@ TwoWire qwiic(1); //Will use pads 8/9
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #include <SPI.h>
 #include <SdFat.h> //SdFat (FAT32) by Bill Greiman: http://librarymanager/All#SdFat
+
+#define SD_FAT_TYPE 3 // SD_FAT_TYPE = 0 for SdFat/File, 1 for FAT16/FAT32, 2 for exFAT, 3 for FAT16/FAT32 and exFAT.
+#define SD_CONFIG SdSpiConfig(PIN_MICROSD_CHIP_SELECT, SHARED_SPI, SD_SCK_MHZ(24)) // 24MHz
+
+#if SD_FAT_TYPE == 1
+SdFat32 sd;
+File32 sensorDataFile; //File that all sensor data is written to
+File32 serialDataFile; //File that all incoming serial data is written to
+#elif SD_FAT_TYPE == 2
+SdExFat sd;
+ExFile sensorDataFile; //File that all sensor data is written to
+ExFile serialDataFile; //File that all incoming serial data is written to
+#elif SD_FAT_TYPE == 3
+SdFs sd;
+FsFile sensorDataFile; //File that all sensor data is written to
+FsFile serialDataFile; //File that all incoming serial data is written to
+#else // SD_FAT_TYPE == 0
 SdFat sd;
-SdFile sensorDataFile; //File that all sensor data is written to
+File sensorDataFile; //File that all sensor data is written to
+File serialDataFile; //File that all incoming serial data is written to
+#endif  // SD_FAT_TYPE
 
 char sensorDataFileName[30] = ""; //We keep a record of this file name so that we can re-open it upon wakeup from sleep
 const int sdPowerDownDelay = 100; //Delay for this many ms before turning off the SD card power
@@ -120,7 +139,8 @@ const int sdPowerDownDelay = 100; //Delay for this many ms before turning off th
 //Add RTC interface for Artemis
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #include "RTC.h" //Include RTC library included with the Aruino_Apollo3 core
-APM3_RTC myRTC; //Create instance of RTC class
+Apollo3RTC myRTC; //Create instance of RTC class
+
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 //Header files for all compatible Qwiic sensors
@@ -129,6 +149,7 @@ APM3_RTC myRTC; //Create instance of RTC class
 #include "SparkFun_I2C_Mux_Arduino_Library.h" //Click here to get the library: http://librarymanager/All#SparkFun_I2C_Mux
 #include "SparkFun_Ublox_Arduino_Library.h" //http://librarymanager/All#SparkFun_Ublox_GPS
 #include "SparkFun_ADS122C04_ADC_Arduino_Library.h" // Click here to get the library: http://librarymanager/All#SparkFun_ADS122C04
+#include "SparkFun_ADS1015_Arduino_Library.h" //Click here to get the library: http://librarymanager/All#SparkFun_ADS1015
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -145,6 +166,8 @@ unsigned long lastReadTime = 0; //Used to delay until user wants to record a new
 const byte menuTimeout = 15; //Menus will exit/timeout after this number of seconds
 volatile static bool samplingEnabled = true; // Flag to indicate if sampling is enabled (sampling is paused while the menu is open)
 volatile static bool stopLoggingSeen = false; //Flag to indicate if we should stop logging
+volatile static bool powerLossSeen = false; //Flag to indicate if a power loss event has been seen
+
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 //Geophone settings
@@ -154,28 +177,88 @@ volatile static bool stopLoggingSeen = false; //Flag to indicate if we should st
 //#define TEST_AMPLITUDE_2 50 // Amplitude of the sinusoidal test signal
 #define SAMPLE_INTERVAL 6000 // Interval for 500Hz with a 3MHz clock
 
+// gfvalvo's flash string helper code: https://forum.arduino.cc/index.php?topic=533118.msg3634809#msg3634809
+void SerialPrint(const char *);
+void SerialPrint(const __FlashStringHelper *);
+void SerialPrintln(const char *);
+void SerialPrintln(const __FlashStringHelper *);
+void DoSerialPrint(char (*)(const char *), const char *, bool newLine = false);
+
 #define DUMP(varname) {if (settings.serialPlotterMode == false) Serial.printf("%s: %llu\n", #varname, varname)}
+#define SerialPrintf1( var ) {Serial.printf( var ); if (settings.useTxRxPinsForTerminal == true) Serial1.printf( var );}
+#define SerialPrintf2( var1, var2 ) {Serial.printf( var1, var2 ); if (settings.useTxRxPinsForTerminal == true) Serial1.printf( var1, var2 );}
+#define SerialPrintf3( var1, var2, var3 ) {Serial.printf( var1, var2, var3 ); if (settings.useTxRxPinsForTerminal == true) Serial1.printf( var1, var2, var3 );}
+#define SerialPrintf4( var1, var2, var3, var4 ) {Serial.printf( var1, var2, var3, var4 ); if (settings.useTxRxPinsForTerminal == true) Serial1.printf( var1, var2, var3, var4 );}
+#define SerialPrintf5( var1, var2, var3, var4, var5 ) {Serial.printf( var1, var2, var3, var4, var5 ); if (settings.useTxRxPinsForTerminal == true) Serial1.printf( var1, var2, var3, var4, var5 );}
+
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+#include "WDT.h" // WDT support
+
+volatile static bool petTheDog = true; // Flag to control whether the WDT ISR pets (resets) the timer.
+
+// Interrupt handler for the watchdog.
+extern "C" void am_watchdog_isr(void)
+{
+  // Clear the watchdog interrupt.
+  wdt.clear();
+
+  // Restart the watchdog if petTheDog is true
+  if (petTheDog)
+    wdt.restart(); // "Pet" the dog.
+}
+
+void startWatchdog()
+{
+  // Set watchdog timer clock to 16 Hz
+  // Set watchdog interrupt to 1 seconds (16 ticks / 16 Hz = 1 second)
+  // Set watchdog reset to 1.25 seconds (20 ticks / 16 Hz = 1.25 seconds)
+  // Note: Ticks are limited to 255 (8-bit)
+  wdt.configure(WDT_16HZ, 16, 20);
+  wdt.start(); // Start the watchdog
+}
+
+void stopWatchdog()
+{
+  wdt.stop();
+}
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 void setup() {
   //If 3.3V rail drops below 3V, system will power down and maintain RTC
   pinMode(PIN_POWER_LOSS, INPUT); // BD49K30G-TL has CMOS output and does not need a pull-up
   
   delay(1); // Let PIN_POWER_LOSS stabilize
-
-  if (digitalRead(PIN_POWER_LOSS) == LOW) powerDown(); //Check PIN_POWER_LOSS just in case we missed the falling edge
-  attachInterrupt(digitalPinToInterrupt(PIN_POWER_LOSS), powerDown, FALLING); //Attach the interrupt
   
   powerLEDOn(); // Turn the power LED on - if the hardware supports it
-  
+
   pinMode(PIN_STAT_LED, OUTPUT);
   digitalWrite(PIN_STAT_LED, HIGH); // Turn the STAT LED on while we configure everything
+
+  SPI.begin(); //Needed if SD is disabled
+
+/* #ifndef noPowerLossProtection
+  if (digitalRead(PIN_POWER_LOSS) == LOW) powerDown(); //Check PIN_POWER_LOSS just in case we missed the falling edge
+  attachInterrupt(digitalPinToInterrupt(PIN_POWER_LOSS), powerDown, FALLING); //Attach the interrupt
+#else
+  // No Power Loss Protection
+  // Set up the WDT to generate a reset just in case the code crashes during a brown-out
+  startWatchdog();
+#endif
+  powerLossSeen = false; // Make sure the flag is clear */
+  
+
 
   Serial.begin(115200); //Default for initial debug messages if necessary
   if (settings.serialPlotterMode == false) Serial.println();
 
-  SPI.begin(); //Needed if SD is disabled
+
+  EEPROM.init();
+
+  beginQwiic(); // Turn the qwiic power on as early as possible
 
   beginSD(); //285 - 293ms
+
+  enableCIPOpullUp(); // Enable CIPO pull-up _after_ beginSD
 
   loadSettings(); //50 - 250ms
 
@@ -191,9 +274,6 @@ void setup() {
     attachInterrupt(digitalPinToInterrupt(PIN_STOP_LOGGING), stopLoggingISR, FALLING); // Enable the interrupt
     stopLoggingSeen = false; // Make sure the flag is clear
   }
-
-  beginQwiic(); //Enable qwiic power and start I2C
-  delay(250); // Allow extra time for the qwiic sensors to power up
 
   analogReadResolution(14); //Increase from default of 10
 
@@ -409,16 +489,56 @@ void loop() {
 void beginQwiic()
 {
   pinMode(PIN_QWIIC_POWER, OUTPUT);
+  pin_config(PinName(PIN_QWIIC_POWER), g_AM_HAL_GPIO_OUTPUT);
   qwiicPowerOn();
   qwiic.begin();
-  qwiic.setPullups(QWIIC_PULLUPS); //Just to make it really clear what pull-ups are being used, set pullups here.
+  setQwiicPullups(QWIIC_PULLUPS); //Just to make it really clear what pull-ups are being used, set pullups here.
+}
+
+void setQwiicPullups(uint32_t qwiicBusPullUps)
+{
+  //Change SCL and SDA pull-ups manually using pin_config
+  am_hal_gpio_pincfg_t sclPinCfg = g_AM_BSP_GPIO_IOM1_SCL;
+  am_hal_gpio_pincfg_t sdaPinCfg = g_AM_BSP_GPIO_IOM1_SDA;
+
+  if (qwiicBusPullUps == 0)
+  {
+    sclPinCfg.ePullup = AM_HAL_GPIO_PIN_PULLUP_NONE; // No pull-ups
+    sdaPinCfg.ePullup = AM_HAL_GPIO_PIN_PULLUP_NONE;
+  }
+  else if (qwiicBusPullUps == 1)
+  {
+    sclPinCfg.ePullup = AM_HAL_GPIO_PIN_PULLUP_1_5K; // Use 1K5 pull-ups
+    sdaPinCfg.ePullup = AM_HAL_GPIO_PIN_PULLUP_1_5K;
+  }
+  else if (qwiicBusPullUps == 6)
+  {
+    sclPinCfg.ePullup = AM_HAL_GPIO_PIN_PULLUP_6K; // Use 6K pull-ups
+    sdaPinCfg.ePullup = AM_HAL_GPIO_PIN_PULLUP_6K;
+  }
+  else if (qwiicBusPullUps == 12)
+  {
+    sclPinCfg.ePullup = AM_HAL_GPIO_PIN_PULLUP_12K; // Use 12K pull-ups
+    sdaPinCfg.ePullup = AM_HAL_GPIO_PIN_PULLUP_12K;
+  }
+  else
+  {
+    sclPinCfg.ePullup = AM_HAL_GPIO_PIN_PULLUP_24K; // Use 24K pull-ups
+    sdaPinCfg.ePullup = AM_HAL_GPIO_PIN_PULLUP_24K;
+  }
+
+  pin_config(PinName(PIN_QWIIC_SCL), sclPinCfg);
+  pin_config(PinName(PIN_QWIIC_SDA), sdaPinCfg);
 }
 
 void beginSD()
 {
   pinMode(PIN_MICROSD_POWER, OUTPUT);
+  pin_config(PinName(PIN_MICROSD_POWER), g_AM_HAL_GPIO_OUTPUT); // Make sure the pin does actually get re-configured
   pinMode(PIN_MICROSD_CHIP_SELECT, OUTPUT);
+  pin_config(PinName(PIN_MICROSD_CHIP_SELECT), g_AM_HAL_GPIO_OUTPUT); // Make sure the pin does actually get re-configured
   digitalWrite(PIN_MICROSD_CHIP_SELECT, HIGH); //Be sure SD is deselected
+  
 
   if (settings.enableSD == true)
   {
@@ -453,7 +573,8 @@ void beginSD()
       //if (settings.serialPlotterMode == false) Serial.println("SD change directory failed");
       online.microSD = false;
       return;
-    }
+    }    
+
 
     online.microSD = true;
   }
@@ -551,4 +672,60 @@ extern "C" void am_stimer_cmpr5_isr(void)
 void stopLoggingISR(void)
 {
   stopLoggingSeen = true;
+}
+
+//Power Loss ISR
+void powerLossISR(void)
+{
+  powerLossSeen = true;
+}
+
+void enableCIPOpullUp() // updated for v2.1.0 of the Apollo3 core
+{
+  //Add 1K5 pull-up on CIPO
+  am_hal_gpio_pincfg_t cipoPinCfg = g_AM_BSP_GPIO_IOM0_MISO;
+  cipoPinCfg.ePullup = AM_HAL_GPIO_PIN_PULLUP_1_5K;
+  pin_config(PinName(PIN_SPI_CIPO), cipoPinCfg);
+}
+
+void disableCIPOpullUp() // updated for v2.1.0 of the Apollo3 core
+{
+  am_hal_gpio_pincfg_t cipoPinCfg = g_AM_BSP_GPIO_IOM0_MISO;
+  pin_config(PinName(PIN_SPI_CIPO), cipoPinCfg);
+}
+// gfvalvo's flash string helper code: https://forum.arduino.cc/index.php?topic=533118.msg3634809#msg3634809
+
+void SerialPrint(const char *line)
+{
+  DoSerialPrint([](const char *ptr) {return *ptr;}, line);
+}
+
+void SerialPrint(const __FlashStringHelper *line)
+{
+  DoSerialPrint([](const char *ptr) {return (char) pgm_read_byte_near(ptr);}, (const char*) line);
+}
+
+void SerialPrintln(const char *line)
+{
+  DoSerialPrint([](const char *ptr) {return *ptr;}, line, true);
+}
+
+void SerialPrintln(const __FlashStringHelper *line)
+{
+  DoSerialPrint([](const char *ptr) {return (char) pgm_read_byte_near(ptr);}, (const char*) line, true);
+}
+
+void DoSerialPrint(char (*funct)(const char *), const char *string, bool newLine)
+{
+  char ch;
+
+  while ((ch = funct(string++)))
+  {
+    Serial.print(ch);
+  }
+
+  if (newLine)
+  {
+    Serial.println();
+  }
 }

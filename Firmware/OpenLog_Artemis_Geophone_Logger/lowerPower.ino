@@ -32,7 +32,7 @@ void powerDown()
 
   SPI.end(); //Power down SPI
 
-  power_adc_disable(); //Power down ADC. It it started by default before setup().
+  powerControlADC(false); //Power down ADC. It it started by default before setup().
 
   Serial.end(); //Power down UART
 
@@ -50,11 +50,11 @@ void powerDown()
   //Disable pads
   for (int x = 0; x < 50; x++)
   {
-    if ((x != ap3_gpio_pin2pad(PIN_POWER_LOSS)) &&
+    if ((x != PIN_POWER_LOSS) &&
       //(x != ap3_gpio_pin2pad(PIN_LOGIC_DEBUG)) &&
-      (x != ap3_gpio_pin2pad(PIN_MICROSD_POWER)) &&
-      (x != ap3_gpio_pin2pad(PIN_QWIIC_POWER)) &&
-      (x != ap3_gpio_pin2pad(PIN_IMU_POWER)))
+      (x != PIN_MICROSD_POWER) &&
+      (x != PIN_QWIIC_POWER) &&
+      (x != PIN_IMU_POWER))
     {
       am_hal_gpio_pinconfig(x, g_AM_HAL_GPIO_DISABLE);
     }
@@ -119,26 +119,20 @@ void stopLogging(void)
 void qwiicPowerOn()
 {
   pinMode(PIN_QWIIC_POWER, OUTPUT);
-#if(HARDWARE_VERSION_MAJOR == 0 && HARDWARE_VERSION_MINOR == 4)
+  pin_config(PinName(PIN_QWIIC_POWER), g_AM_HAL_GPIO_OUTPUT); // Make sure the pin does actually get re-configured
+#if(HARDWARE_VERSION_MAJOR == 0)
   digitalWrite(PIN_QWIIC_POWER, LOW);
-#elif(HARDWARE_VERSION_MAJOR == 0 && HARDWARE_VERSION_MINOR == 5)
-  digitalWrite(PIN_QWIIC_POWER, LOW);
-#elif(HARDWARE_VERSION_MAJOR == 0 && HARDWARE_VERSION_MINOR == 6)
-  digitalWrite(PIN_QWIIC_POWER, HIGH);
-#elif(HARDWARE_VERSION_MAJOR == 1 && HARDWARE_VERSION_MINOR == 0)
+#else
   digitalWrite(PIN_QWIIC_POWER, HIGH);
 #endif
 }
 void qwiicPowerOff()
 {
   pinMode(PIN_QWIIC_POWER, OUTPUT);
-#if(HARDWARE_VERSION_MAJOR == 0 && HARDWARE_VERSION_MINOR == 4)
+  pin_config(PinName(PIN_QWIIC_POWER), g_AM_HAL_GPIO_OUTPUT); // Make sure the pin does actually get re-configured
+#if(HARDWARE_VERSION_MAJOR == 0)
   digitalWrite(PIN_QWIIC_POWER, HIGH);
-#elif(HARDWARE_VERSION_MAJOR == 0 && HARDWARE_VERSION_MINOR == 5)
-  digitalWrite(PIN_QWIIC_POWER, HIGH);
-#elif(HARDWARE_VERSION_MAJOR == 0 && HARDWARE_VERSION_MINOR == 6)
-  digitalWrite(PIN_QWIIC_POWER, LOW);
-#elif(HARDWARE_VERSION_MAJOR == 1 && HARDWARE_VERSION_MINOR == 0)
+#else
   digitalWrite(PIN_QWIIC_POWER, LOW);
 #endif
 }
@@ -146,22 +140,26 @@ void qwiicPowerOff()
 void microSDPowerOn()
 {
   pinMode(PIN_MICROSD_POWER, OUTPUT);
+  pin_config(PinName(PIN_MICROSD_POWER), g_AM_HAL_GPIO_OUTPUT); // Make sure the pin does actually get re-configured
   digitalWrite(PIN_MICROSD_POWER, LOW);
 }
 void microSDPowerOff()
 {
   pinMode(PIN_MICROSD_POWER, OUTPUT);
+  pin_config(PinName(PIN_MICROSD_POWER), g_AM_HAL_GPIO_OUTPUT); // Make sure the pin does actually get re-configured
   digitalWrite(PIN_MICROSD_POWER, HIGH);
 }
 
 void imuPowerOn()
 {
   pinMode(PIN_IMU_POWER, OUTPUT);
+  pin_config(PinName(PIN_IMU_POWER), g_AM_HAL_GPIO_OUTPUT); // Make sure the pin does actually get re-configured
   digitalWrite(PIN_IMU_POWER, HIGH);
 }
 void imuPowerOff()
 {
   pinMode(PIN_IMU_POWER, OUTPUT);
+  pin_config(PinName(PIN_IMU_POWER), g_AM_HAL_GPIO_OUTPUT); // Make sure the pin does actually get re-configured
   digitalWrite(PIN_IMU_POWER, LOW);
 }
 
@@ -169,15 +167,17 @@ void powerLEDOn()
 {
 #if(HARDWARE_VERSION_MAJOR >= 1)
   pinMode(PIN_PWR_LED, OUTPUT);
-  digitalWrite(PIN_PWR_LED, HIGH); // Turn the Power LED on  
-#endif  
+  pin_config(PinName(PIN_PWR_LED), g_AM_HAL_GPIO_OUTPUT); // Make sure the pin does actually get re-configured
+  digitalWrite(PIN_PWR_LED, HIGH); // Turn the Power LED on
+#endif
 }
 void powerLEDOff()
 {
 #if(HARDWARE_VERSION_MAJOR >= 1)
   pinMode(PIN_PWR_LED, OUTPUT);
+  pin_config(PinName(PIN_PWR_LED), g_AM_HAL_GPIO_OUTPUT); // Make sure the pin does actually get re-configured
   digitalWrite(PIN_PWR_LED, LOW); // Turn the Power LED off
-#endif  
+#endif
 }
 
 //Returns the number of milliseconds according to the RTC

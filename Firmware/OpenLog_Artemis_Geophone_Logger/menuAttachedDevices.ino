@@ -34,7 +34,7 @@ bool detectQwiicDevices()
 
   qwiic.setClock(100000); //During detection, go slow
 
-  qwiic.setPullups(QWIIC_PULLUPS); //Set pullups. (Redundant. beginQwiic has done this too.) If we don't have pullups, detectQwiicDevices() takes ~900ms to complete. We'll disable pullups if something is detected.
+  setQwiicPullups(QWIIC_PULLUPS); //Set pullups. (Redundant. beginQwiic has done this too.) If we don't have pullups, detectQwiicDevices() takes ~900ms to complete. We'll disable pullups if something is detected.
 
   //24k causes a bunch of unknown devices to be falsely detected.
   //qwiic.setPullups(24); //Set pullups to 24k. If we don't have pullups, detectQwiicDevices() takes ~900ms to complete. We'll disable pullups if something is detected.
@@ -326,7 +326,7 @@ void getUbloxDateTime(int &year, int &month, int &day, int &hour, int &minute, i
     {
       case DEVICE_GPS_UBLOX:
       {
-        qwiic.setPullups(0); //Disable pullups to minimize CRC issues
+        setQwiicPullups(0); //Disable pullups to minimize CRC issues
 
         SFE_UBLOX_GPS *nodeDevice = (SFE_UBLOX_GPS *)temp->classPtr;
         struct_uBlox *nodeSetting = (struct_uBlox *)temp->configPtr;
@@ -343,7 +343,7 @@ void getUbloxDateTime(int &year, int &month, int &day, int &hour, int &minute, i
         timeValid = nodeDevice->getTimeValid();
         millisecond = nodeDevice->getMillisecond();
 
-        qwiic.setPullups(QWIIC_PULLUPS); //Re-enable pullups
+        setQwiicPullups(QWIIC_PULLUPS); //Re-enable pullups
       }
     }
     temp = temp->next;

@@ -186,11 +186,11 @@ bool beginQwiicDevices()
         break;
       case DEVICE_GPS_UBLOX:
         {
-          qwiic.setPullups(0); //Disable pullups for u-blox comms.
+          setQwiicPullups(0); //Disable pullups for u-blox comms.
           SFE_UBLOX_GPS *tempDevice = (SFE_UBLOX_GPS *)temp->classPtr;
           struct_uBlox *nodeSetting = (struct_uBlox *)temp->configPtr; //Create a local pointer that points to same spot as node does
           temp->online = tempDevice->begin(qwiic, temp->address); //Wire port, Address
-          qwiic.setPullups(QWIIC_PULLUPS); //Re-enable pullups.
+          setQwiicPullups(QWIIC_PULLUPS); //Re-enable pullups.
         }
         break;
       case DEVICE_ADC_ADS122C04:
@@ -266,7 +266,7 @@ void configureDevice(node * temp)
       break;
     case DEVICE_GPS_UBLOX:
       {
-        qwiic.setPullups(0); //Disable pullups for u-blox comms.
+        setQwiicPullups(0); //Disable pullups for u-blox comms.
         
         SFE_UBLOX_GPS *sensor = (SFE_UBLOX_GPS *)temp->classPtr;
         struct_uBlox *sensorSetting = (struct_uBlox *)temp->configPtr;
@@ -287,7 +287,7 @@ void configureDevice(node * temp)
 
         sensor->saveConfiguration(); //Save the current settings to flash and BBR
         
-        qwiic.setPullups(QWIIC_PULLUPS); //Re-enable pullups.
+        setQwiicPullups(QWIIC_PULLUPS); //Re-enable pullups.
       }
       break;
     case DEVICE_ADC_ADS122C04:
@@ -520,14 +520,14 @@ deviceType_e testDevice(uint8_t i2cAddress, uint8_t muxAddress, uint8_t portNumb
       {
         //Confidence: High - Sends/receives CRC checked data response
       
-        qwiic.setPullups(0); //Disable pullups to minimize CRC issues
+        setQwiicPullups(0); //Disable pullups to minimize CRC issues
         SFE_UBLOX_GPS sensor;
         if (sensor.begin(qwiic, i2cAddress) == true) //Wire port, address
         {
-          qwiic.setPullups(QWIIC_PULLUPS); //Re-enable pullups to prevent ghosts at 0x43 onwards
+          setQwiicPullups(QWIIC_PULLUPS); //Re-enable pullups to prevent ghosts at 0x43 onwards
           return (DEVICE_GPS_UBLOX);
         }
-        qwiic.setPullups(QWIIC_PULLUPS); //Re-enable pullups for normal discovery
+        setQwiicPullups(QWIIC_PULLUPS); //Re-enable pullups for normal discovery
       }
       break;
     case 0x44:
