@@ -161,6 +161,7 @@ unsigned long measurementCount = 0; //Used to calc the actual update rate.
 char geophoneData[16384]; //Array to hold the geophone data. Factor of 512 for easier recording to SD in 512 chunks
 char geophoneDataSerial[16384]; //Array to hold the geophone data for serial plotter mode
 char dateTime[50]; //Array to hold the log date and/or time
+char serialTimestamp[40]; //Buffer to store serial timestamp, if needed
 char peakFreq[50]; //Array to hold the peak frequency and amplitude and count
 unsigned long lastReadTime = 0; //Used to delay until user wants to record a new reading
 const byte menuTimeout = 15; //Menus will exit/timeout after this number of seconds
@@ -228,17 +229,17 @@ void setup() {
   pinMode(PIN_POWER_LOSS, INPUT); // BD49K30G-TL has CMOS output and does not need a pull-up
   
   delay(1); // Let PIN_POWER_LOSS stabilize
-  
 
-/* #ifndef noPowerLossProtection
+
+#ifdef noPowerLossProtection
     if (digitalRead(PIN_POWER_LOSS) == LOW) powerDown(); //Check PIN_POWER_LOSS just in case we missed the falling edge
     attachInterrupt(digitalPinToInterrupt(PIN_POWER_LOSS), powerDown, FALLING); //Attach the interrupt
-#else */
+#else 
     // No Power Loss Protection
     // Set up the WDT to generate a reset just in case the code crashes during a brown-out
     startWatchdog();
-/* #endif
- */  powerLossSeen = false; // Make sure the flag is clear
+#endif
+  powerLossSeen = false; // Make sure the flag is clear
 
   powerLEDOn(); // Turn the power LED on - if the hardware supports it
 
@@ -248,6 +249,7 @@ void setup() {
   SPI.begin(); //Needed if SD is disabled
 
   Serial.begin(115200); //Default for initial debug messages if necessary
+
   if (settings.serialPlotterMode == false) Serial.println();
 
   EEPROM.init();
@@ -377,6 +379,12 @@ void loop() {
       {
         digitalWrite(PIN_STAT_LED, HIGH);
         
+/*         getTimeString(&serialTimestamp[2]);
+        serialTimestamp[0] = 0x0A; // Add Line Feed at the start of the timestamp
+        serialTimestamp[1] = '^'; // Add an up-arrow to indicate the timestamp relates to the preceeding data
+        serialTimestamp[strlen(serialTimestamp) - 1] = 0x0A; // Change the final comma of the timestamp to a Line Feed
+        //Serial.println(&dateTime); */
+
         int dataLength = strlen(dateTime);
         if (dataLength > 0)
         {

@@ -158,17 +158,22 @@ bool geophone_loop()
     {
       for (uint32_t i = 1; i < FREQ_LIMIT; i++)
       {
-        sprintf(tempData, "%.2f,", g_fGeophoneMagnitudes[i]);
+        olaftoa(g_fGeophoneMagnitudes[i], tempData, 2, sizeof(tempData) / sizeof(char));
         strcat(geophoneData, tempData);
-        sprintf(tempData, "%.2f\n", g_fGeophoneMagnitudes[i]);
+        strcat(geophoneData, ",");
+
+        olaftoa(g_fGeophoneMagnitudes[i], tempData, 2, sizeof(tempData) / sizeof(char));
         strcat(geophoneDataSerial, tempData);
+        strcat(geophoneDataSerial, "\n");
       }
   
       sprintf(tempData, "%d", ui32LoudestFrequency);
       strcat(geophoneData, tempData);
+      
       strcat(peakFreq, tempData);
+      strcat(peakFreq, "_");
 
-      sprintf(tempData, ",%.2f", fMaxValue);
+      olaftoa(fMaxValue, tempData, 2, sizeof(tempData) / sizeof(char));
       strcat(peakFreq, tempData);
       
       if (settings.printMeasurementCount)
@@ -181,6 +186,8 @@ bool geophone_loop()
       sprintf(tempData, "\n"); // Add a LF to the end of the geophoneData
       strcat(geophoneData, tempData);
       
+      strcat(geophoneDataSerial, "\n");
+
       return(true);
     }
   }

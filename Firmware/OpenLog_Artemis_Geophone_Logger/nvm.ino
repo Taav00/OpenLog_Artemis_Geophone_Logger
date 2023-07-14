@@ -355,6 +355,26 @@ void recordDeviceSettingsToFile() {
             settingsFile.println((String)base + "useTwoWireHighTemperatureMode=" + nodeSetting->useTwoWireHighTemperatureMode);
           }
           break;
+        case DEVICE_ADS1015:
+          {
+            struct_ADS1015 *nodeSetting = (struct_ADS1015 *)temp->configPtr;
+            settingsFile.println((String)base + "log=" + nodeSetting->log);
+            settingsFile.println((String)base + "logA0=" + nodeSetting->logA0);
+            settingsFile.println((String)base + "logA1=" + nodeSetting->logA1);
+            settingsFile.println((String)base + "logA2=" + nodeSetting->logA2);
+            settingsFile.println((String)base + "logA3=" + nodeSetting->logA3);
+            settingsFile.println((String)base + "logA0A1=" + nodeSetting->logA0A1);
+            settingsFile.println((String)base + "logA0A3=" + nodeSetting->logA0A3);
+            settingsFile.println((String)base + "logA1A3=" + nodeSetting->logA1A3);
+            settingsFile.println((String)base + "logA2A3=" + nodeSetting->logA2A3);
+            settingsFile.println((String)base + "gain23=" + nodeSetting->gain23);
+            settingsFile.println((String)base + "gain1=" + nodeSetting->gain1);
+            settingsFile.println((String)base + "gain2=" + nodeSetting->gain2);
+            settingsFile.println((String)base + "gain4=" + nodeSetting->gain4);
+            settingsFile.println((String)base + "gain8=" + nodeSetting->gain8);
+            settingsFile.println((String)base + "gain16=" + nodeSetting->gain16);
+          }
+          break;
         default:
           if (settings.serialPlotterMode == false) Serial.printf("recordSettingsToFile Unknown device: %s\n", base);
           //settingsFile.println((String)base + "=UnknownDeviceSettings");

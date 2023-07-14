@@ -125,7 +125,7 @@ struct struct_settings {
   unsigned long openNewLogFilesAfter = 0; //Default to 0 (Never) seconds
   double threshold = 0.0; // Default geophone signal threshold
   int  geophoneGain = 16; // ADS122C04 Gain: 1,2,4,8,16,32,64,128
-  bool serialPlotterMode = false; // If true, only output Serial Plotter-compatible data
+  bool serialPlotterMode = true; // If true, only output Serial Plotter-compatible data
   bool useGPIO32ForStopLogging = false; //If true, use GPIO as a stop logging button
 } settings;
 
