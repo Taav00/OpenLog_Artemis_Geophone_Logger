@@ -67,6 +67,20 @@ void geophone_setup()
  */
 void sampling_interrupt( )
 {
+  sampleNow = true;
+}
+
+void checkSampleNow()
+{
+  if (sampleNow)
+  {
+    sampleNow = false;
+    getSample();
+  }
+}
+  
+void getSample()
+{
   /* Read a sample and store it in the geodata buffer.  Apply a Hamming
      window as we go along.  It involves a cos operation; the alternative
      is an array that should be fit into program memory. */
