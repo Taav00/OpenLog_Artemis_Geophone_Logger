@@ -8,7 +8,11 @@ void menuThreshold()
     Serial.print("1) Gain: ");
     Serial.printf("%d\n", settings.geophoneGain);
     Serial.print("2) Threshold: ");
-    Serial.printf("%f\n", settings.threshold);
+    char temp[50];
+    olaftoa(settings.threshold, temp, 2, sizeof(temp) / sizeof(char));
+    Serial.printf(temp);
+    Serial.println();
+    //Serial.printf("%f\n", settings.threshold);
 
     Serial.println("x) Exit");
 

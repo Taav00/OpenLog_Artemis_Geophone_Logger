@@ -180,7 +180,7 @@ int16_t gatherADCValue()
             ADS1015 *nodeDevice = (ADS1015 *)temp->classPtr;
             struct_ADS1015 *nodeSetting = (struct_ADS1015 *)temp->configPtr;
             
-            int16_t channel_0 = nodeDevice->getSingleEndedSigned(0);
+            int16_t channel_0 = nodeDevice->getDifferential();
             return(channel_0); 
           }
           break;

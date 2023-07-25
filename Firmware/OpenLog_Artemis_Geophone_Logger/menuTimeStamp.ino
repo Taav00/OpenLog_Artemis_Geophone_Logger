@@ -131,7 +131,7 @@ void menuTimeStamp()
         Serial.print("Enter current day (1 to 31): ");
         dd = getNumber(menuTimeout); //Timeout after x seconds
 
-        myRTC.setTime(h, m, s, 0, dd, mm, yy); //Manually set RTC
+        myRTC.setTime(0, m, s, h, dd, mm, yy); //Manually set RTC
         lastSDFileNameChangeTime = rtcMillis(); // Record the time of the file name change
       }
       else if (incoming == 5)
@@ -157,7 +157,7 @@ void menuTimeStamp()
         Serial.print("Enter current second (0 to 59): ");
         s = getNumber(menuTimeout); //Timeout after x seconds
 
-        myRTC.setTime(h, m, s, 0, dd, mm, yy); //Manually set RTC
+        myRTC.setTime(0, s, m, h, dd, mm, yy); //Manually set RTC
         lastSDFileNameChangeTime = rtcMillis(); // Record the time of the file name change
       }
       else if (incoming == 7)

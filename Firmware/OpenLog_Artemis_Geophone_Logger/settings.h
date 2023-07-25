@@ -110,7 +110,7 @@ struct struct_settings {
   bool logHertz = true;
   bool getRTCfromGPS = false;
   bool correctForDST = false;
-  bool americanDateStyle = true;
+  bool americanDateStyle = false;
   bool hour24Style = true;
   int  serialTerminalBaudRate = 115200;
   int  serialLogBaudRate = 9600;
@@ -123,7 +123,7 @@ struct struct_settings {
   bool enablePwrLedDuringSleep = true;
   bool logVIN = false;
   unsigned long openNewLogFilesAfter = 0; //Default to 0 (Never) seconds
-  double threshold = 0.0; // Default geophone signal threshold
+  float threshold = 0.0; // Default geophone signal threshold
   int  geophoneGain = 16; // ADS122C04 Gain: 1,2,4,8,16,32,64,128
   bool serialPlotterMode = true; // If true, only output Serial Plotter-compatible data
   bool useGPIO32ForStopLogging = false; //If true, use GPIO as a stop logging button

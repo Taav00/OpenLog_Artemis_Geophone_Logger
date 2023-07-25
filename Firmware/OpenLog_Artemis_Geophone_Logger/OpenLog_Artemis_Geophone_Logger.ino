@@ -327,6 +327,7 @@ void setup() {
 
 void loop() {
 
+  uint32_t starttime = micros();
   checkSampleNow();
 
   if (Serial.available()) // Check if the user pressed a key
@@ -497,6 +498,10 @@ void loop() {
   {
     stopLogging();
   }
+
+  Serial.println(micros() - starttime);
+
+  // end of loop
 }
 
 void beginQwiic()

@@ -170,7 +170,7 @@ bool geophone_loop()
 
     if (fMaxValue >= (float)settings.threshold) // Check if the threshold has been exceeded
     {
-      for (uint32_t i = 1; i < FREQ_LIMIT; i++)
+/*       for (uint32_t i = 1; i < FREQ_LIMIT; i++)
       {
         olaftoa(g_fGeophoneMagnitudes[i], tempData, 2, sizeof(tempData) / sizeof(char));
         strcat(geophoneData, tempData);
@@ -179,8 +179,33 @@ bool geophone_loop()
         olaftoa(g_fGeophoneMagnitudes[i], tempData, 2, sizeof(tempData) / sizeof(char));
         strcat(geophoneDataSerial, tempData);
         strcat(geophoneDataSerial, "\n");
+      } */
+      if (g_bUsingGeophoneBuffer1)
+      {
+        for (uint32_t i = 1; i < GEOPHONE_FFT_SIZE; i++)
+        {
+          sprintf(tempData, "%d",g_ui32GeophoneDataBuffer1[i]);
+          strcat(geophoneData, tempData);
+          strcat(geophoneData, ",");
+
+          sprintf(tempData, "%d",g_ui32GeophoneDataBuffer1[i]);
+          strcat(geophoneDataSerial, tempData);
+          strcat(geophoneDataSerial, "\n");
+        } 
       }
-  
+      else
+      {
+        for (uint32_t i = 1; i < GEOPHONE_FFT_SIZE; i++)
+        {
+          sprintf(tempData, "%d",g_ui32GeophoneDataBuffer2[i]);
+          strcat(geophoneData, tempData);
+          strcat(geophoneData, ",");
+
+          sprintf(tempData, "%d",g_ui32GeophoneDataBuffer2[i]);
+          strcat(geophoneDataSerial, tempData);
+          strcat(geophoneDataSerial, "\n"); 
+        }
+      }
       sprintf(tempData, "%d", ui32LoudestFrequency);
       strcat(geophoneData, tempData);
       
