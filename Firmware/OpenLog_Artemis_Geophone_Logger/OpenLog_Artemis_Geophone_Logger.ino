@@ -168,6 +168,7 @@ const byte menuTimeout = 15; //Menus will exit/timeout after this number of seco
 volatile static bool samplingEnabled = true; // Flag to indicate if sampling is enabled (sampling is paused while the menu is open)
 volatile static bool stopLoggingSeen = false; //Flag to indicate if we should stop logging
 volatile static bool powerLossSeen = false; //Flag to indicate if a power loss event has been seen
+volatile static bool sampleNow = false; //Flag to indicate when to take an ADC sample. Sampling is done outside of the ISR
 
 //-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -325,7 +326,9 @@ void setup() {
 }
 
 void loop() {
-  
+
+  checkSampleNow();
+
   if (Serial.available()) // Check if the user pressed a key
   {
     samplingEnabled = false; // Disable sampling while menu is open
@@ -402,6 +405,8 @@ void loop() {
         // Don't change the limit unless you know what you are doing.
         while ((dataLength > 0) && (millis() < (writeStart + 1300)))
         {
+          checkSampleNow();
+          
           int bytesToWrite;
           if (dataLength > 512)
             bytesToWrite = 512;
@@ -473,6 +478,8 @@ void loop() {
       int thisByte = 0;
       while (dataLength > 0)
       {
+        checkSampleNow();
+        
         Serial.write(geophoneDataSerial[thisByte]);
         thisByte++;
         bytesSent++;
